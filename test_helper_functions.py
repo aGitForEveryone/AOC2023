@@ -196,11 +196,11 @@ class TestHelperFunctions(unittest.TestCase):
         """Test helper_functions.LineSegment"""
         line1 = helper_functions.LineSegment(Coordinate(2, 10), Coordinate(18, 10))
         line2 = helper_functions.LineSegment(Coordinate(12, 10), Coordinate(12, 10))
-        print(line1.merge(line2))
+        # print(line1.merge(line2))
 
     def test_manual(self):
         """Some manual testing"""
-        print(f"{type(helper_functions.Direction.LEFT.value)}")
+        pass
 
     def test_full_space(self):
         """Test helper_functions.full_space"""

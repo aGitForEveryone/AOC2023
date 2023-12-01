@@ -127,37 +127,39 @@ class Coordinate(tuple):
             data = data[0]
         return super().__new__(cls, data)
 
-    def __add__(self, other: Self) -> Self:
+    def __add__(self, other: Self | list | tuple) -> Self:
         """Redefine how Coordinates add together"""
         assert len(self) == len(other)
         return Coordinate(*[x + y for x, y in zip(self, other)])
 
-    def __sub__(self, other: Self) -> Self:
+    def __sub__(self, other: Self | list | tuple) -> Self:
         assert len(self) == len(other)
         return Coordinate(*[x - y for x, y in zip(self, other)])
 
-    def __gt__(self, other: Self) -> bool:
+    def __gt__(self, other: Self | list | tuple) -> bool:
         assert len(self) == len(other)
         return all([x > y for x, y in zip(self, other)])
 
-    def __lt__(self, other: Self) -> bool:
+    def __lt__(self, other: Self | list | tuple) -> bool:
         assert len(self) == len(other)
         return all([x < y for x, y in zip(self, other)])
 
-    def __ge__(self, other: Self) -> bool:
+    def __ge__(self, other: Self | list | tuple) -> bool:
         assert len(self) == len(other)
         return all([x >= y for x, y in zip(self, other)])
 
-    def __le__(self, other: Self) -> bool:
+    def __le__(self, other: Self | list | tuple) -> bool:
         assert len(self) == len(other)
         return all([x <= y for x, y in zip(self, other)])
 
-    def distance(self, other: Self) -> float:
+    def distance(self, other: Self | list | tuple) -> float:
         """Calculate the euclidian distance between two coordinates"""
+        assert len(self) == len(other)
         return math.sqrt(sum([(x - y) ** 2 for x, y in zip(self, other)]))
 
-    def manhattan_distance(self, other: Self) -> int:
+    def manhattan_distance(self, other: Self | list | tuple) -> int:
         """Returns manhattan distance between two coordinates"""
+        assert len(self) == len(other)
         return sum([abs(x - y) for x, y in zip(self, other)])
 
     def is_touching(
@@ -165,7 +167,7 @@ class Coordinate(tuple):
     ) -> bool:
         """True is self and other are located at most 1 step away for each axis.
         overlap indicates if coordinates are touching when on the same
-        coordinate. By default, 1 step diagonally is also counts as touching.
+        coordinate. By default, 1 step diagonally also counts as touching.
         If diagonal is False, only 1 step along 1 axis is counted"""
         if self == other:
             return overlap
