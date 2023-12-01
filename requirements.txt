@@ -1,0 +1,4 @@
+advent-of-code-data==2.0.1
+numpy==1.26.2
+anytree==2.8.0
+
