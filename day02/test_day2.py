@@ -23,7 +23,7 @@ class TestDay2(unittest.TestCase):
     """Test class to test functions in day02.day2"""
 
     def setUp(self):
-        """Setup the tests"""
+        """Set up the tests"""
         pass
 
     def tearDown(self):

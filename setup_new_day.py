@@ -162,7 +162,7 @@ if __name__ == "__main__":
         \"\"\"Test class to test functions in day{target_day:0>2}.day{target_day}\"\"\"
     
         def setUp(self):
-            \"\"\"Setup the tests\"\"\"
+            \"\"\"Set up the tests\"\"\"
             pass
     
         def tearDown(self):
@@ -172,6 +172,10 @@ if __name__ == "__main__":
         def test_part1(self):
             \"\"\"Test day{target_day}.part1\"\"\"
             result = day{target_day}.part1(TEST_DATA)
+            
+        def test_part2(self):
+            \"\"\"Test day{target_day}.part2\"\"\"
+            result = day{target_day}.part2(TEST_DATA)
     
     
     if __name__ == "__main__":
