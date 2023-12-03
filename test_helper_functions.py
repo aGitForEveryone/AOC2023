@@ -185,6 +185,11 @@ class TestHelperFunctions(unittest.TestCase):
         # Test manhattan distance
         assert coordinate1.manhattan_distance(coordinate2) == 4
 
+        line1 = helper_functions.LineSegment(Coordinate(2, 10), Coordinate(18, 10))
+        assert Coordinate(12, 10).is_touching(line1)
+        assert not Coordinate(12, 10).is_touching(line1, overlap=False)
+        assert not Coordinate(12, 12).is_touching(line1)
+
     def test_get_sign(self):
         """Test helper_functions.get_sign"""
         assert helper_functions.get_sign(-5) == -1
@@ -196,6 +201,11 @@ class TestHelperFunctions(unittest.TestCase):
         """Test helper_functions.LineSegment"""
         line1 = helper_functions.LineSegment(Coordinate(2, 10), Coordinate(18, 10))
         line2 = helper_functions.LineSegment(Coordinate(12, 10), Coordinate(12, 10))
+        coord = Coordinate(12, 10)
+        assert line1.is_touching(line2)
+        assert not line1.is_touching(line2, overlap=False)
+        assert line1.is_touching(coord)
+        assert not line1.is_touching(coord, overlap=False)
         # print(line1.merge(line2))
 
     def test_manual(self):

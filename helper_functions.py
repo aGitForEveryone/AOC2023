@@ -169,6 +169,9 @@ class Coordinate(tuple):
         overlap indicates if coordinates are touching when on the same
         coordinate. By default, 1 step diagonally also counts as touching.
         If diagonal is False, only 1 step along 1 axis is counted"""
+        if isinstance(other, LineSegment):
+            return other.is_touching(self, overlap=overlap, diagonal=diagonal)
+
         if self == other:
             return overlap
         distance = [abs(x - y) for x, y in zip(self, other)]
@@ -213,8 +216,12 @@ class Processor:
 
 
 class LineSegment:
-    def __init__(self, start: Coordinate, end: Coordinate) -> None:
+    def __init__(self, start: Coordinate | list | tuple, end: Coordinate | list | tuple) -> None:
         """Create 2D line segment"""
+        if not isinstance(start, Coordinate):
+            start = Coordinate(start)
+        if not isinstance(end, Coordinate):
+            end = Coordinate(end)
         if len(start) != 2 or len(end) != 2:
             raise NotImplementedError(
                 f"Class currently only works for 2D "
@@ -252,18 +259,18 @@ class LineSegment:
     @property
     def is_on_first_axis(self) -> bool:
         # Line is parallel to a given axis if the other axis' coordinate remains
-        # constant
+        # constant. First axis is y-axis (Given how Direction is defined)
         return self.start[1] == self.end[1]
 
     @property
     def is_on_second_axis(self) -> bool:
         # Line is parallel to a given axis if the other axis' coordinate remains
-        # constant
+        # constant. Second axis is x-axis (Given how Direction is defined)
         return self.start[0] == self.end[0]
 
     @property
     def is_point(self):
-        return len(self) == 1
+        return len(self) == 1 or self.start == self.end
 
     def _merge_on_axis(self, other: Self, axis: int) -> Self:
         """Do actual merge on the given axis"""
@@ -287,8 +294,55 @@ class LineSegment:
         if self.is_on_second_axis:
             return self._merge_on_axis(other, 1)
 
+    def is_touching(
+        self, other: Self | Coordinate, overlap=True, diagonal=True
+    ) -> bool:
+        """Returns True if other is located at most 1 step away for each axis of
+        the line segment. In case other is a line segment, then True means that
+        there is at least 1 point in which the line is touching the other line.
+
+        Args:
+            other:      Either a Coordinate or a LineSegment
+            overlap:    Bool, indicates if coordinates are touching when the other
+                        Coordinate lies on the line segment, or if the other line
+                        segment intersects with the line segment.
+            diagonal:   Bool, indicates if 1 step diagonally counts as touching.
+        """
+        if isinstance(other, Coordinate):
+            other = LineSegment(other, other)
+        # Create a box around the line segment and check if the other point
+        # intersects with any of the lines in the box. If overlap is True, then
+        # also check if the other point is on the line segment itself. This is
+        # faster than checking each point of the line individually.
+        left_up = self.start + Direction.UP.value
+        right_up = (self.end if self.is_on_second_axis else self.start) + Direction.UP.value
+        left_down = (self.start if self.is_on_second_axis else self.end) + Direction.DOWN.value
+        right_down = self.end + Direction.DOWN.value
+        if diagonal:
+            left_up += Direction.LEFT.value
+            right_up += Direction.RIGHT.value
+            left_down += Direction.LEFT.value
+            right_down += Direction.RIGHT.value
+        box = [
+            LineSegment(left_up, right_up),
+            LineSegment(right_up, right_down),
+            LineSegment(left_down, right_down),
+            LineSegment(left_up, left_down),
+        ]
+        for other_point in other:
+            for line in box:
+                if line.intersect(other_point):
+                    return True
+            if overlap and self.intersect(other_point):
+                return True
+        return False
+
     def __iter__(self):
         """Return all points in the line segment"""
+        if self.is_point:
+            yield self.start
+            return
+
         direction = tuple(
             get_sign(coordinate, sign_zero=0) for coordinate in self.end - self.start
         )
@@ -333,7 +387,7 @@ def print_grid(grid: np.ndarray, symbols: dict = None) -> None:
 
     print()
     for row in grid:
-        grid_str = "".join([default_symbols[value] for value in row])
+        grid_str = "".join([symbols[value] for value in row])
         print(grid_str)
 
 

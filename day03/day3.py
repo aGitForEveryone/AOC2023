@@ -11,7 +11,7 @@ def parse_data(load_test_data: bool = False):
     """Parser function to parse today's data
 
     Args:
-        load_test_data:     Set to true to load test data from the local 
+        load_test_data:     Set to true to load test data from the local
                             directory
     """
     if load_test_data:
@@ -26,9 +26,64 @@ def parse_data(load_test_data: bool = False):
     return data
 
 
+def parse_grid(data):
+    """Scan the grid and find the location of all the numbers and special symbols
+    in the grid.
+    The numbers can have multiple digits but will always be oriented horizontally.
+    We will store the numbers in a list of tuples: [(<num_as_str>, <start>)].
+    The special symbols are single characters, anything that is not a number or a period.
+    The specials symbols are stored in a dictionary: {<symbol>: [list of coordinates]}
+    """
+    numbers = []
+    special_symbols = {}
+    for row, line in enumerate(data.splitlines()):
+        for match in re.finditer(r"\d+", line):
+            numbers += [(match.group(), Coordinate(match.start(), row))]
+        for match in re.finditer("[^.\d]", line):
+            if match.group() not in special_symbols:
+                special_symbols[match.group()] = []
+            special_symbols[match.group()] += [Coordinate(match.start(), row)]
+    return numbers, special_symbols
+
+
+def temp():
+
+    numbers, special_symbols = parse_grid(data)
+    special_symbol_coordinates = [
+        coord for coordinates in special_symbols.values() for coord in coordinates
+    ]
+    for number, coordinate in numbers:
+        number_line = helper_functions.LineSegment(
+            coordinate, coordinate + Coordinate(len(number) - 1, 0)
+        )
+        print(f"Checking number {number} at {coordinate}")
+        for special_symbol_coord in special_symbol_coordinates:
+            print(f"Checking symbol at {special_symbol_coord}")
+            # print(f"Number {number} is touching {symbol} at {digit_location}")
+            if number_line.is_touching(special_symbol_coord):
+                answer += int(number)
+                break
+
+
 def part1(data):
     """Advent of code 2023 day 3 - Part 1"""
     answer = 0
+    numbers, special_symbols = parse_grid(data)
+    for number, coordinate in numbers:
+        for digit in range(len(number)):
+            digit_location = Coordinate(digit, 0) + coordinate
+            is_adjacent = False
+            for symbol, coordinates in special_symbols.items():
+                for coord in coordinates:
+                    if digit_location.is_touching(coord):
+                        is_adjacent = True
+                        break
+                if is_adjacent:
+                    break
+            if is_adjacent:
+                # print(f"Number {number} is touching {symbol} at {digit_location}")
+                answer += int(number)
+                break
 
     print(f"Solution day 3, part 1: {answer}")
     return answer
@@ -44,13 +99,13 @@ def part2(data):
 
 def main(parts: str, should_submit: bool = False, load_test_data: bool = False) -> None:
     """Main function for solving the selected part(s) of today's puzzle
-    and automatically submitting the answer. 
+    and automatically submitting the answer.
 
     Args:
         parts:          "a", "b", or "ab". Execute the chosen parts
         should_submit:  Set to True if you want to submit your answer
         load_test_data: Set to True if you want to load test data instead of
-                        the full input. By default, this will load the file 
+                        the full input. By default, this will load the file
                         called 'input3.1'
     """
     data = parse_data(load_test_data=load_test_data)
