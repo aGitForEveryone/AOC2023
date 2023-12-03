@@ -46,8 +46,8 @@ def parse_grid(data):
     return numbers, special_symbols
 
 
-def temp():
-
+def temp(data):
+    answer = 0
     numbers, special_symbols = parse_grid(data)
     special_symbol_coordinates = [
         coord for coordinates in special_symbols.values() for coord in coordinates
@@ -56,13 +56,15 @@ def temp():
         number_line = helper_functions.LineSegment(
             coordinate, coordinate + Coordinate(len(number) - 1, 0)
         )
-        print(f"Checking number {number} at {coordinate}")
+        # print(f"Checking number {number} at {coordinate}")
         for special_symbol_coord in special_symbol_coordinates:
-            print(f"Checking symbol at {special_symbol_coord}")
+            # print(f"Checking symbol at {special_symbol_coord}")
             # print(f"Number {number} is touching {symbol} at {digit_location}")
             if number_line.is_touching(special_symbol_coord):
                 answer += int(number)
                 break
+    print(f"Solution day 3, part 1: {answer}")
+    return answer
 
 
 def part1(data):
@@ -92,6 +94,22 @@ def part1(data):
 def part2(data):
     """Advent of code 2023 day 3 - Part 2"""
     answer = 0
+    numbers, special_symbols = parse_grid(data)
+    for symbol_coordinate in special_symbols["*"]:
+        gear_ratio = 1
+        close_parts = 0
+        for number, number_coordinate in numbers:
+            for digit in range(len(number)):
+                digit_location = Coordinate(digit, 0) + number_coordinate
+                if symbol_coordinate.is_touching(digit_location):
+                    gear_ratio *= int(number)
+                    close_parts += 1
+                    break
+            if close_parts >= 2:
+                # Too many parts are close to the gear
+                break
+        if close_parts == 2:
+            answer += gear_ratio
 
     print(f"Solution day 3, part 2: {answer}")
     return answer
@@ -127,6 +145,6 @@ if __name__ == "__main__":
     # test_data = True
     submit_answer = False
     # submit_answer = True
-    main("a", should_submit=submit_answer, load_test_data=test_data)
-    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    # main("a", should_submit=submit_answer, load_test_data=test_data)
+    main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)

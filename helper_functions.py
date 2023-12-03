@@ -243,6 +243,26 @@ class LineSegment:
         self.start = start
         self.end = end
 
+
+
+        # Calculate the standard form of the line segment
+        # ax + by = c
+        # For linear lines, a = -slope, b = 1, c = y-intercept
+        # Horizontal and vertical lines need special treatment
+
+        if self.is_horizontal:
+            self.slope = 0
+            self.y_intercept = self.start[0]  # = y
+            self.y_factor = 1
+        elif self.is_vertical:
+            self.slope = 1
+            self.y_intercept = self.start[1]  # = x
+            self.y_factor = 0
+        else:
+            self.slope = (self.end[1] - self.start[1]) / (self.end[0] - self.start[0])
+            self.y_intercept = self.start[1] - self.slope * self.start[0]
+            self.y_factor = 1
+
     def __eq__(self, other: Self) -> bool:
         """Check if both line segments have the same start and end point"""
         return self.start == other.start and self.end == other.end
@@ -251,22 +271,26 @@ class LineSegment:
         """Check if either the start or end point is different"""
         return self.start != other.start or self.end != other.end
 
-    def intersect(self, point: Coordinate) -> bool:
-        """Check if point lies on the line segment."""
-        # print(f"Intersection? {self.start = }, {point = }, {self.end = }")
-        return self.start <= point <= self.end
+    def is_point_on_line(self, point: Coordinate) -> bool:
+        """Check if point lies on the line segment. A point lies on the line
+        if it satisfies the equation ax + by = c"""
+        if self.is_horizontal or self.is_vertical:
+            # If the line segment is parallel to an axis, then the point lies
+            # on the line if it has the same coordinate as the line segment
+            return self.start <= point <= self.end
+        return np.isclose(point[1] - point[0] * self.slope, self.y_intercept)
 
     @property
-    def is_on_first_axis(self) -> bool:
-        # Line is parallel to a given axis if the other axis' coordinate remains
-        # constant. First axis is y-axis (Given how Direction is defined)
-        return self.start[1] == self.end[1]
-
-    @property
-    def is_on_second_axis(self) -> bool:
-        # Line is parallel to a given axis if the other axis' coordinate remains
-        # constant. Second axis is x-axis (Given how Direction is defined)
+    def is_vertical(self) -> bool:
+        # First axis is y-axis (Given how Direction is defined and how iteration
+        # is usually done, first rows then columns)
         return self.start[0] == self.end[0]
+
+    @property
+    def is_horizontal(self) -> bool:
+        # Second axis is x-axis (Given how Direction is defined and how iteration
+        # is usually done, first rows then columns)
+        return self.start[1] == self.end[1]
 
     @property
     def is_point(self):
