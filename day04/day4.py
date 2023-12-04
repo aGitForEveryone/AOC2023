@@ -11,7 +11,7 @@ def parse_data(load_test_data: bool = False):
     """Parser function to parse today's data
 
     Args:
-        load_test_data:     Set to true to load test data from the local 
+        load_test_data:     Set to true to load test data from the local
                             directory
     """
     if load_test_data:
@@ -44,17 +44,21 @@ def parse_cards(data):
     return cards
 
 
+def get_matching_numbers(winning_numbers, available_numbers):
+    """Return the numbers that are in both lists"""
+    return [number for number in available_numbers if number in winning_numbers]
+
+
 def part1(data):
     """Advent of code 2023 day 4 - Part 1"""
     answer = 0
     parsed_games = parse_cards(data)
     for game, (winning_numbers, available_numbers) in parsed_games.items():
-        winning_number_count = -1
-        for number in available_numbers:
-            if number in winning_numbers:
-                winning_number_count += 1
-        if winning_number_count >= 0:
-            game_value = 2 ** winning_number_count
+        matching_numbers_count = len(
+            get_matching_numbers(winning_numbers, available_numbers)
+        )
+        if matching_numbers_count > 0:
+            game_value = 2 ** (matching_numbers_count - 1)
         else:
             game_value = 0
         answer += game_value
@@ -65,7 +69,19 @@ def part1(data):
 
 def part2(data):
     """Advent of code 2023 day 4 - Part 2"""
-    answer = 0
+    parsed_games = parse_cards(data)
+    # We start with 1 card of each of the cards in the input
+    number_of_cards = {num: 1 for num in parsed_games.keys()}
+    for game, (winning_numbers, available_numbers) in parsed_games.items():
+        matching_numbers_count = len(
+            get_matching_numbers(winning_numbers, available_numbers)
+        )
+        # for each match that card N has, we get a duplicate of
+        # card N+1, N+2, ..., N + matching_numbers_count
+        # Duplicates are exact matches of the original card
+        for num in range(matching_numbers_count):
+            number_of_cards[game + num + 1] += number_of_cards[game]
+    answer = sum(number_of_cards.values())
 
     print(f"Solution day 4, part 2: {answer}")
     return answer
@@ -73,13 +89,13 @@ def part2(data):
 
 def main(parts: str, should_submit: bool = False, load_test_data: bool = False) -> None:
     """Main function for solving the selected part(s) of today's puzzle
-    and automatically submitting the answer. 
+    and automatically submitting the answer.
 
     Args:
         parts:          "a", "b", or "ab". Execute the chosen parts
         should_submit:  Set to True if you want to submit your answer
         load_test_data: Set to True if you want to load test data instead of
-                        the full input. By default, this will load the file 
+                        the full input. By default, this will load the file
                         called 'input4.1'
     """
     data = parse_data(load_test_data=load_test_data)
@@ -102,5 +118,5 @@ if __name__ == "__main__":
     submit_answer = False
     # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
-    # main("ab", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    main("ab", should_submit=submit_answer, load_test_data=test_data)
