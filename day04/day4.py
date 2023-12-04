@@ -26,9 +26,38 @@ def parse_data(load_test_data: bool = False):
     return data
 
 
+def parse_cards(data):
+    """Cards have format:
+    Card N: <number> ... <number> | <number> ... <number>
+    The first set of numbers are the winning numbers, the second set are the
+    numbers that we have available.
+    We extract the two sets and save them together with the game order.
+    """
+    cards = {}
+    for line in data.splitlines():
+        game, numbers = line.split(":")
+        game_number = int(game.split()[1].strip())
+        winning_numbers, available_numbers = numbers.split("|")
+        winning_numbers = [int(x.strip()) for x in winning_numbers.split()]
+        available_numbers = [int(x.strip()) for x in available_numbers.split()]
+        cards[game_number] = (winning_numbers, available_numbers)
+    return cards
+
+
 def part1(data):
     """Advent of code 2023 day 4 - Part 1"""
     answer = 0
+    parsed_games = parse_cards(data)
+    for game, (winning_numbers, available_numbers) in parsed_games.items():
+        winning_number_count = -1
+        for number in available_numbers:
+            if number in winning_numbers:
+                winning_number_count += 1
+        if winning_number_count >= 0:
+            game_value = 2 ** winning_number_count
+        else:
+            game_value = 0
+        answer += game_value
 
     print(f"Solution day 4, part 1: {answer}")
     return answer
@@ -72,6 +101,6 @@ if __name__ == "__main__":
     # test_data = True
     submit_answer = False
     # submit_answer = True
-    main("a", should_submit=submit_answer, load_test_data=test_data)
-    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    # main("a", should_submit=submit_answer, load_test_data=test_data)
+    main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)
