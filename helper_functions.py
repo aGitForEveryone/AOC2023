@@ -12,16 +12,16 @@ def timer(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Record the start time
-        start_time = time.time()
+        start_time = time.perf_counter_ns()
 
         # Call the function being decorated
         result = func(*args, **kwargs)
 
         # Record the end time
-        end_time = time.time()
+        end_time = time.perf_counter_ns()
 
         # Print the elapsed time
-        print(f"Elapsed time for {func.__name__}: {end_time - start_time} seconds")
+        print(f"Elapsed time for {func.__name__}: {(end_time - start_time) / 1e9} seconds")
 
         # Return the result of the decorated function
         return result
