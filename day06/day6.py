@@ -1,3 +1,4 @@
+import math
 import re
 
 from aocd import get_data, submit
@@ -35,13 +36,11 @@ def parse_data(load_test_data: bool = False):
 
 
 def get_number_of_ways_to_win(race: tuple | list) -> int:
-    num_ways_to_win = 0
-    for hold_time in range(race[0]):
-        travel_time = race[0] - hold_time
-        distance = travel_time * hold_time
-        if distance > race[1]:
-            num_ways_to_win += 1
+    root = math.sqrt(race[0]**2 - 4 * race[1])
+    sol1 = (-race[0] + root) / -2
+    sol2 = (-race[0] - root) / -2
 
+    num_ways_to_win = math.floor(max(sol1, sol2)) - math.ceil(min(sol1, sol2)) + 1
     return num_ways_to_win
 
 
