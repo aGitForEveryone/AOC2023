@@ -47,12 +47,10 @@ def get_hand_rank(hand: str, joker: bool) -> int:
     char_count = collections.Counter(hand)
     if joker:
         # the joker can be any card, it will mimic another card in order to make
-        # the strongest hand possible. To do that we will simple add the joker
+        # the strongest hand possible. To do that we will simply add the joker
         # count to the highest card count.
         joker_count = char_count.get("J", 0)
-        if joker_count == 5:
-            return Ranks.FIVE_OF_A_KIND.value
-        if joker_count > 0:
+        if 0 < joker_count < 5:
             del char_count["J"]
             char_count[max(char_count, key=char_count.get)] += joker_count
     if len(char_count) == 1:
