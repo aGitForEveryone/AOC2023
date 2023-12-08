@@ -74,6 +74,11 @@ def digits_to_int(
     return return_type(convert_line(line) for line in data)
 
 
+def lcm(a, b):
+    """Calculate least common multiple"""
+    return abs(a*b) // math.gcd(a, b)
+
+
 def pad_numpy_array(
     np_array: np.ndarray,
     padding_symbol: int,
