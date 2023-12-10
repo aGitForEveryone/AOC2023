@@ -137,6 +137,9 @@ class Coordinate(tuple):
         assert len(self) == len(other)
         return Coordinate(*[x + y for x, y in zip(self, other)])
 
+    def __mul__(self, other: int) -> Self:
+        return Coordinate(*[x * other for x in self])
+
     def __sub__(self, other: Self | list | tuple) -> Self:
         assert len(self) == len(other)
         return Coordinate(*[x - y for x, y in zip(self, other)])
@@ -196,6 +199,10 @@ class Coordinate(tuple):
         # # more remaining truthy values left
         # return any(distance_iterator) and not any(distance_iterator)
 
+    @property
+    def inverse_direction(self) -> Self:
+        return Coordinate([-x for x in self])
+
     @staticmethod
     def create_origin(dimension: int = 2) -> Self:
         """Create an origin coordinate, location is zero for every axis for the
@@ -213,6 +220,10 @@ class Direction(Enum):
     UP = Coordinate(-1, 0)
     RIGHT = Coordinate(0, 1)
     DOWN = Coordinate(1, 0)
+    UP_LEFT = UP + LEFT
+    UP_RIGHT = UP + RIGHT
+    DOWN_LEFT = DOWN + LEFT
+    DOWN_RIGHT = DOWN + RIGHT
 
 
 class Processor:
