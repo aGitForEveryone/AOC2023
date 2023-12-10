@@ -1,4 +1,5 @@
 import re
+from functools import partial
 
 from aocd import get_data, submit
 import numpy as np
@@ -7,7 +8,7 @@ import helper_functions
 from helper_functions import Coordinate, Direction
 
 
-def parse_data(load_test_data: bool = False):
+def parse_data(load_test_data: bool | int = False):
     """Parser function to parse today's data
 
     Args:
@@ -15,18 +16,19 @@ def parse_data(load_test_data: bool = False):
                             directory
     """
     if load_test_data:
-        # with open("input10.1", "r") as f:
-        # with open("input10.2", "r") as f:
-        # with open("input10.3", "r") as f:
-        with open("input10.4", "r") as f:
+        file_num = load_test_data if isinstance(load_test_data, int) else 1
+        with open(f"input10.{file_num}", "r") as f:
             # For loading example or test data
             data = f.read()
     else:
         data = get_data(day=10, year=2023)
     lines = data.splitlines()
+    extra_dots = "." * (len(lines[0]) + 2)
+    # pad grid with extra dots so floodfill will catch the full exterior
+    grid = [extra_dots] + ["." + line + "." for line in lines] + [extra_dots]
     # grid = np.array(helper_functions.digits_to_int(data.splitlines()))
     # numbers = [int(x) for x in re.findall("(-?\d+)", data)]
-    return lines
+    return grid
 
 
 pipe_segments = {
@@ -93,34 +95,63 @@ def get_valid_directions_for_start(
     return valid_directions
 
 
-def part1(data):
-    """Advent of code 2023 day 10 - Part 1"""
-    start_coordinate = find_start_location(data, "S")
-    # Set the frontier as cur_coordinate, prev_coordinate pair
-    frontier = [
-        (coordinate, start_coordinate)
-        for coordinate in get_valid_directions_for_start(data, start_coordinate)
-    ]
-    steps_taken = 1
-    # Check if the snakes of the frontier have found each other
+def find_loop(grid: list[str], start_coordinate: Coordinate) -> set[Coordinate]:
+    """Find the loop in the grid starting from the start_coordinate"""
+    start_neighbors = get_valid_directions_for_start(grid, start_coordinate)
+    frontier = [(coordinate, start_coordinate) for coordinate in start_neighbors]
+    loop = set([start_coordinate] + start_neighbors)
     while frontier[0][0] != frontier[1][0]:
         next_frontier = []
         for coordinate_set in frontier:
             next_frontier += [
                 (
-                    get_next_pipe_segment(data, coordinate_set[0], coordinate_set[1]),
+                    get_next_pipe_segment(grid, coordinate_set[0], coordinate_set[1]),
                     coordinate_set[0],
                 )
             ]
         frontier = next_frontier
+        loop.update([coordinate_set[0] for coordinate_set in frontier])
         # If the prev of the first snake is the cur of the second snake, the snakes
         # have passed each other and we break. Extra condition in case the loop
         # length is not odd
         if frontier[0][1] == frontier[1][0]:
             break
-        steps_taken += 1
-    answer = steps_taken
+    return loop
 
+
+def part1(data):
+    """Advent of code 2023 day 10 - Part 1"""
+    start_coordinate = find_start_location(data, "S")
+    loop = find_loop(data, start_coordinate)
+    # Set the frontier as cur_coordinate, prev_coordinate pair
+    # frontier = [
+    #     (coordinate, start_coordinate)
+    #     for coordinate in get_valid_directions_for_start(data, start_coordinate)
+    # ]
+    # steps_taken = 1
+    # # Check if the snakes of the frontier have found each other
+    # while frontier[0][0] != frontier[1][0]:
+    #     next_frontier = []
+    #     for coordinate_set in frontier:
+    #         next_frontier += [
+    #             (
+    #                 get_next_pipe_segment(data, coordinate_set[0], coordinate_set[1]),
+    #                 coordinate_set[0],
+    #             )
+    #         ]
+    #     frontier = next_frontier
+    #     # If the prev of the first snake is the cur of the second snake, the snakes
+    #     # have passed each other and we break. Extra condition in case the loop
+    #     # length is not odd
+    #     if frontier[0][1] == frontier[1][0]:
+    #         break
+    #     steps_taken += 1
+    # answer = steps_taken
+    # We need to find the furthest point from the start coordinate. This is the
+    # point half the length of the loop away from the start coordinate (not counting
+    # the start coordinate itself). We add 0.1 to the length to account for precision
+    # errors when dividing by 2.
+    answer = int(round((len(loop) - 1) / 2 + 0.1, 0))
     print(f"Solution day 10, part 1: {answer}")
     return answer
 
@@ -200,79 +231,96 @@ def get_grid(loop: set[Coordinate], grid_size: tuple[int, int]) -> list[str]:
     return grid
 
 
+def is_valid_exterior_coordinate(
+    coordinate: Coordinate, loop: set[Coordinate], grid_dimensions: tuple[int, int]
+) -> bool:
+    """Check if a coordinate is a valid exterior coordinate. Given that we start
+    outside the loop, any coordinate that is not in the loop is valid."""
+    return (
+        Coordinate(0, 0) <= coordinate < Coordinate(grid_dimensions)
+        and coordinate not in loop
+    )
+
+
 def part2(data):
     """Advent of code 2023 day 10 - Part 2"""
     start_coordinate = find_start_location(data, "S")
-    start_neighbors = get_valid_directions_for_start(data, start_coordinate)
-    loop = set(start_neighbors)
-    # Set the frontier as cur_coordinate, prev_coordinate pair
-    frontier = [(coordinate, start_coordinate) for coordinate in loop]
+    loop = find_loop(data, start_coordinate)
 
-    # Check if the snakes of the frontier have found each other
-    while frontier[0][0] != frontier[1][0]:
-        next_frontier = []
-        for coordinate_set in frontier:
-            next_coordinate = get_next_pipe_segment(
-                data, coordinate_set[0], coordinate_set[1]
-            )
-            loop.update((next_coordinate,))
-            next_frontier += [
-                (
-                    next_coordinate,
-                    coordinate_set[0],
-                )
-            ]
-        frontier = next_frontier
-        # If the prev of the first snake is the cur of the second snake, the snakes
-        # have passed each other and we break. Extra condition in case the loop
-        # length is not odd
-        if frontier[0][1] == frontier[1][0]:
-            break
+    exterior_points = helper_functions.flood_fill(
+        Coordinate(0, 0),
+        partial(
+            is_valid_exterior_coordinate,
+            loop=loop,
+            grid_dimensions=(len(data), len(data[0])),
+        ),
+    )
 
-    grid = get_grid(loop, (len(data), len(data[0])))
-    for line in grid:
-        print(line)
-    return
+    interior_points = {
+        Coordinate(row_idx, col_idx)
+        for row_idx in range(len(data))
+        for col_idx in range(len(data[0]))
+        if (
+            Coordinate(row_idx, col_idx) not in loop
+            and Coordinate(row_idx, col_idx) not in exterior_points
+        )
+    }
 
-    bottom_right = get_bottom_right_coordinate(loop)
-    enclosed_tiles = set()
-    # The bottom right coordinate should always be a corner piece, "J"
-    assert data[bottom_right[0]][bottom_right[1]] == "J"
-    # Now we start at the bottom right coordinate and move northwards along the
-    # loop until we get back to the bottom right. We keep
-    # track of the direction we are moving. The inner part of the loop is always
-    # toward the left relative to which direction we are moving. So if we move
-    # upwards, inwards is left. If we move left, inwards is down. If we move down,
-    # inwards is right. If we move right, inwards is up. At each corner piece we
-    # update the direction we are moving. To count all the tiles enclosed by the
-    # loop, we move from the current location on the loop in the inwards direction
-    # until we encounter the other edge of the loop. We count every coordinate we
-    # encounter that is not already in the loop.
-    prev_coordinate = bottom_right
-    cur_moving_direction = Direction.UP.value
-    while (cur_coordinate := prev_coordinate + cur_moving_direction) != bottom_right:
-        prev_coordinate = cur_coordinate
-        cur_pipe = data[cur_coordinate[0]][cur_coordinate[1]]
-        if cur_pipe == "S":
-            cur_pipe = get_start_pipe_segment_shape(
-                [coor - start_coordinate for coor in start_neighbors]
-            )
-        if cur_pipe in "LJ7F":
-            # We are at a corner piece, update the moving direction and don't
-            # check for enclosed tiles
-            cur_moving_direction = update_moving_direction(
-                cur_moving_direction, cur_pipe
-            )
-            continue
-
-        # We are at a straight piece, check for enclosed tiles
-        inwards_direction = get_inwards_direction(cur_moving_direction)
+    # For each of the interior points, go from that point to the edge of the grid
+    # and count the number of times we crossed the loop. If the number of times
+    # we crossed the loop is odd, the point is enclosed by the loop. In this case
+    # we choose to go upwards from the interior point. That choice is arbitrary.
+    enclosed_points = set()
+    for point in interior_points:
+        times_loop_crossed = 0
         step = 1
-        while (cur_coordinate + inwards_direction * step) not in loop:
-            enclosed_tiles.add(cur_coordinate + inwards_direction * step)
+        next_point = point + Direction.UP.value * step
+        found_loop = False
+        while next_point[0] > 0:
+            pipe_segment = data[next_point[0]][next_point[1]]
+            # If the flag is raised and we encounter a corner piece, we have
+            # reached the end of our line segment. We need to check if we passed
+            # an S piece or sideways U piece.
+            if found_loop and pipe_segment in "LJ7F":
+                cur_left_in_loop = pipe_segment in "J7"
+                cur_right_in_loop = pipe_segment in "LF"
+                # Left_in_loop will always be set, as this if-branch is only entered
+                # after that variable is set.
+                if (
+                    left_in_loop
+                    and cur_right_in_loop
+                    or right_in_loop
+                    and cur_left_in_loop
+                ):
+                    # we passed an S piece
+                    times_loop_crossed += 1
+                else:
+                    # we passed a sideways U piece
+                    times_loop_crossed += 2
+                # Reset flag
+                found_loop = False
+            elif next_point in loop:
+                if pipe_segment in "LFJ7":
+                    # We enter the loop at a corner piece and therefore encountered
+                    # an S piece or sideways U piece. Now we need to follow the loop
+                    # until we exit the loop again. We have to compare how the
+                    # loop entered the corner piece that we entered with how the
+                    # loop exits the corner piece that we exit. If those two directions
+                    # are the same, we passed a sideways U piece. If those two directions
+                    # are opposite, we passed an S piece. An S-piece counts as a straight
+                    # piece, so we add 1 to the number of times we crossed the loop.
+                    # A sideways U piece counts as two straight pieces, so we add 2.
+                    found_loop = True
+                    left_in_loop = pipe_segment in "J7"
+                    right_in_loop = pipe_segment in "LF"
+                if not found_loop and data[next_point[0]][next_point[1]] in "-":
+                    # We passed a straight piece
+                    times_loop_crossed += 1
             step += 1
-
-    answer = len(enclosed_tiles)
+            next_point = point + Direction.UP.value * step
+        if times_loop_crossed % 2 == 1:
+            enclosed_points.add(point)
+    answer = len(enclosed_points)
 
     print(f"Solution day 10, part 2: {answer}")
     return answer
@@ -304,10 +352,12 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    # test_data = False
-    test_data = True
+    test_data = False
+    # test_data = True
     submit_answer = False
     # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
+    # for test_data in range(1, 5):
+    #     main("b", should_submit=submit_answer, load_test_data=test_data)
     main("b", should_submit=submit_answer, load_test_data=test_data)
     # main("ab", should_submit=submit_answer, load_test_data=test_data)

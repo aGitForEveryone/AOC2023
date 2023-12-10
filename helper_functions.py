@@ -501,7 +501,7 @@ def flood_fill(
     while True:
         next_frontier = []
         for frontier_block in current_frontier:
-            # The next frontier is all the valid coordinates that border the
+            # The next frontier are all the valid coordinates that border the
             # current frontier
             valid_neighbours = [
                 coordinate
