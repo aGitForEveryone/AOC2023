@@ -123,30 +123,6 @@ def part1(data):
     """Advent of code 2023 day 10 - Part 1"""
     start_coordinate = find_start_location(data, "S")
     loop = find_loop(data, start_coordinate)
-    # Set the frontier as cur_coordinate, prev_coordinate pair
-    # frontier = [
-    #     (coordinate, start_coordinate)
-    #     for coordinate in get_valid_directions_for_start(data, start_coordinate)
-    # ]
-    # steps_taken = 1
-    # # Check if the snakes of the frontier have found each other
-    # while frontier[0][0] != frontier[1][0]:
-    #     next_frontier = []
-    #     for coordinate_set in frontier:
-    #         next_frontier += [
-    #             (
-    #                 get_next_pipe_segment(data, coordinate_set[0], coordinate_set[1]),
-    #                 coordinate_set[0],
-    #             )
-    #         ]
-    #     frontier = next_frontier
-    #     # If the prev of the first snake is the cur of the second snake, the snakes
-    #     # have passed each other and we break. Extra condition in case the loop
-    #     # length is not odd
-    #     if frontier[0][1] == frontier[1][0]:
-    #         break
-    #     steps_taken += 1
-    # answer = steps_taken
     # We need to find the furthest point from the start coordinate. This is the
     # point half the length of the loop away from the start coordinate (not counting
     # the start coordinate itself). We add 0.1 to the length to account for precision
@@ -154,81 +130,6 @@ def part1(data):
     answer = int(round((len(loop) - 1) / 2 + 0.1, 0))
     print(f"Solution day 10, part 1: {answer}")
     return answer
-
-
-def get_bottom_right_coordinate(loop: set[Coordinate]) -> Coordinate:
-    """Find the bottom right coordinate of the loop"""
-    bottom_right = Coordinate(0, 0)
-    for coordinate in loop:
-        if (coordinate[0] > bottom_right[0]) or (
-            (coordinate[0] == bottom_right[0]) and (coordinate[1] > bottom_right[1])
-        ):
-            bottom_right = coordinate
-    return bottom_right
-
-
-def get_inwards_direction(cur_moving_direction: Coordinate) -> Coordinate:
-    """Get the direction inwards relative to the current moving direction. By
-    definition below, with counter-clockwise loop traversal, inwards direction
-    is always left relative to the current moving direction."""
-    if cur_moving_direction == Direction.UP.value:
-        return Direction.LEFT.value
-    elif cur_moving_direction == Direction.LEFT.value:
-        return Direction.DOWN.value
-    elif cur_moving_direction == Direction.DOWN.value:
-        return Direction.RIGHT.value
-    elif cur_moving_direction == Direction.RIGHT.value:
-        return Direction.UP.value
-    else:
-        raise ValueError(f"Invalid moving direction: {cur_moving_direction}")
-
-
-def update_moving_direction(
-    cur_moving_direction: Coordinate, corner_pipe: str
-) -> Coordinate:
-    """Update the moving direction based on the shape of the corner piece and the
-    current moving direction (to determine what the previous coordinate was"""
-    valid_directions = pipe_segments[corner_pipe]
-    for direction in valid_directions:
-        if direction not in [
-            cur_moving_direction,
-            cur_moving_direction.inverse_direction,
-        ]:
-            return direction
-    # # If we are traversing the corner along the directions defined in the corner
-    # # we return the other direction
-    # if cur_moving_direction in valid_directions:
-    #     for direction in valid_directions:
-    #         if direction != cur_moving_direction:
-    #             return direction
-    # # If we are traversing the corner against the directions defined in the corner
-    # # we return the inverse of the other direction
-    # assert cur_moving_direction.inverse_direction in valid_directions
-    # for direction in valid_directions:
-    #     if direction != cur_moving_direction.inverse_direction:
-    #         return direction.inverse_direction
-
-
-def get_start_pipe_segment_shape(start_neighbors: list[Coordinate]) -> str:
-    """Determine the shape of the start pipe segment based on the valid directions
-    for the start coordinate"""
-    for segment, neighbors in pipe_segments.items():
-        # Check if start
-        if all([neighbor in neighbors for neighbor in start_neighbors]):
-            return segment
-
-    raise ValueError(
-        f"Could not determine start pipe segment shape from "
-        f"neighbors: {start_neighbors}"
-    )
-
-
-def get_grid(loop: set[Coordinate], grid_size: tuple[int, int]) -> list[str]:
-    grid = [[" " for _ in range(grid_size[1])] for _ in range(grid_size[0])]
-    for coordinate in loop:
-        grid[coordinate[0]][coordinate[1]] = "X"
-    grid = ["".join(row) for row in grid]
-    return grid
 
 
 def is_valid_exterior_coordinate(
@@ -247,6 +148,7 @@ def part2(data):
     start_coordinate = find_start_location(data, "S")
     loop = find_loop(data, start_coordinate)
 
+    # Get all points not in the loop that are connected to the edge of the grid
     exterior_points = helper_functions.flood_fill(
         Coordinate(0, 0),
         partial(
@@ -256,6 +158,8 @@ def part2(data):
         ),
     )
 
+    # All points that are not in the loop and do not have a direct connection to
+    # the edge of the grid are interior points.
     interior_points = {
         Coordinate(row_idx, col_idx)
         for row_idx in range(len(data))
@@ -270,6 +174,10 @@ def part2(data):
     # and count the number of times we crossed the loop. If the number of times
     # we crossed the loop is odd, the point is enclosed by the loop. In this case
     # we choose to go upwards from the interior point. That choice is arbitrary.
+    # Given that the grid is discrete, it is possible to traverse along the loop.
+    # Therefore, we need to implement additional logic to see how many times we
+    # have to count the crossing. If we pass an S piece, we count 1 crossing. If
+    # we pass a sideways U piece, we count 2 crossings.
     enclosed_points = set()
     for point in interior_points:
         times_loop_crossed = 0
@@ -278,8 +186,8 @@ def part2(data):
         found_loop = False
         while next_point[0] > 0:
             pipe_segment = data[next_point[0]][next_point[1]]
-            # If the flag is raised and we encounter a corner piece, we have
-            # reached the end of our line segment. We need to check if we passed
+            # If the flag is raised, and we encounter a corner piece, we have
+            # reached the end of our line segment. We now check if we passed
             # an S piece or sideways U piece.
             if found_loop and pipe_segment in "LJ7F":
                 cur_left_in_loop = pipe_segment in "J7"
@@ -302,7 +210,7 @@ def part2(data):
             elif next_point in loop:
                 if pipe_segment in "LFJ7":
                     # We enter the loop at a corner piece and therefore encountered
-                    # an S piece or sideways U piece. Now we need to follow the loop
+                    # a new S piece or sideways U piece. Now we need to follow the loop
                     # until we exit the loop again. We have to compare how the
                     # loop entered the corner piece that we entered with how the
                     # loop exits the corner piece that we exit. If those two directions
@@ -359,5 +267,5 @@ if __name__ == "__main__":
     # main("a", should_submit=submit_answer, load_test_data=test_data)
     # for test_data in range(1, 5):
     #     main("b", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
-    # main("ab", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    main("ab", should_submit=submit_answer, load_test_data=test_data)
