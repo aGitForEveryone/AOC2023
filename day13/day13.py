@@ -1,4 +1,5 @@
 import re
+from _weakref import ref
 
 from aocd import get_data, submit
 import numpy as np
@@ -29,12 +30,13 @@ def parse_data(load_test_data: bool = False) -> list[list[str]]:
 
 
 def find_reflection_line(pattern: list[str]):
-    """Find the reflection line within a pattern. The reflection line can be either
+    """Find all reflection lines within a pattern. The reflection line can be either
     horizontal or vertical. The function return the column or row number before which
     the reflection line is located, and whether the line is horizontal or vertical.
     We only need to match the same amount of tiles before and after the reflection line,
     all other tiles can be ignored.
     """
+    reflection_lines = []
     # Iterate over columns
     reflection_idx = 1
     while reflection_idx < len(pattern[0]):
@@ -53,7 +55,7 @@ def find_reflection_line(pattern: list[str]):
                 break
         else:
             # If we get here, we have found the reflection line
-            return reflection_idx, "vertical"
+            reflection_lines += [(reflection_idx, "vertical"),]
         reflection_idx += 1
 
     # Iterate over rows
@@ -84,20 +86,23 @@ def find_reflection_line(pattern: list[str]):
                 break
         else:
             # If we get here, we have found the reflection line
-            return reflection_idx, "horizontal"
+            reflection_lines += [(reflection_idx, "horizontal"),]
         reflection_idx += 1
 
-    for row in pattern:
-        print(row)
-    raise ValueError("No reflection line found")
+    if not reflection_lines:
+        raise ValueError("No reflection line found")
+
+    return reflection_lines
 
 
 def part1(data):
     """Advent of code 2023 day 13 - Part 1"""
     answer = 0
     for idx, pattern in enumerate(data):
-        # print(f"Pattern {idx}")
-        reflection_idx, orientation = find_reflection_line(pattern)
+        reflection_lines = find_reflection_line(pattern)
+        if len(reflection_lines) > 1:
+            raise ValueError("Multiple reflection lines found")
+        reflection_idx, orientation = reflection_lines[0]
         answer += (
             reflection_idx * 100 if orientation == "horizontal" else reflection_idx
         )
@@ -107,18 +112,30 @@ def part1(data):
 
 
 def fix_smudge(pattern: list[str]):
+    reflection_lines = find_reflection_line(pattern)
+    if len(reflection_lines) > 1:
+        raise ValueError("Multiple reflection lines found")
+    original_reflection_idx, orientation = reflection_lines[0]
+
     pattern_grid = [list(row) for row in pattern]
     for row_idx in range(len(pattern)):
         for col_idx in range(len(pattern[0])):
-            old_tile = pattern[row_idx][col_idx]
+            old_tile = pattern_grid[row_idx][col_idx]
             new_tile = "." if old_tile == "#" else "#"
             pattern_grid[row_idx][col_idx] = new_tile
             pattern = ["".join(row) for row in pattern_grid]
             try:
-                return find_reflection_line(pattern)
+                reflection_lines = find_reflection_line(pattern)
+                for (new_reflection_index, new_orientation) in reflection_lines:
+                    if (
+                        new_reflection_index != original_reflection_idx
+                        or new_orientation != orientation
+                    ):
+                        return new_reflection_index, new_orientation
             except ValueError:
-                # revert change
-                pattern_grid[row_idx][col_idx] = old_tile
+                pass
+            # revert change
+            pattern_grid[row_idx][col_idx] = old_tile
 
     for row in pattern:
         print(row)
@@ -130,7 +147,6 @@ def part2(data):
     answer = 0
     for idx, pattern in enumerate(data):
         reflection_idx, orientation = fix_smudge(pattern)
-        # print(f"Pattern {idx}")
         answer += (
             reflection_idx * 100 if orientation == "horizontal" else reflection_idx
         )
@@ -165,10 +181,10 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    # test_data = False
-    test_data = True
+    test_data = False
+    # test_data = True
     submit_answer = False
     # submit_answer = True
     # main("a", should_submit=submit_answer, load_test_data=test_data)
-    main("b", should_submit=submit_answer, load_test_data=test_data)
-    # main("ab", should_submit=submit_answer, load_test_data=test_data)
+    # main("b", should_submit=submit_answer, load_test_data=test_data)
+    main("ab", should_submit=submit_answer, load_test_data=test_data)
