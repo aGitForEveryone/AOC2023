@@ -20,16 +20,34 @@ def parse_data(load_test_data: bool = False):
             data = f.read()
     else:
         data = get_data(day=12, year=2023)
-    # lines = data.splitlines()
+    lines = data.splitlines()
+    spring_data = [(line.split()[0], tuple(int(num) for num in line.split()[1].split(","))) for line in data.splitlines()]
+    # groups = [int(num) for num in groups.split(",")]
     # grid = np.array(helper_functions.digits_to_int(data.splitlines()))
     # numbers = [int(x) for x in re.findall("(-?\d+)", data)]
-    return data
+    return spring_data
+
+
+def is_line_valid(line: str, expected_groups: tuple[int]) -> bool:
+    """Check if the listed groups are present in the line and arranged correctly"""
+    positioned_groups = re.findall("(#+)", line)
+    print(line, positioned_groups)
+    for (group, expected_group) in zip(positioned_groups, expected_groups):
+        if len(group) != expected_group:
+            return False
+    return True
+
+
+def get_possible_arrangements(line: str, groups: tuple[int]):
+    """Get all possible arrangements of springs given the broken record"""
+    open_spaces = re.findall("?+", line)
 
 
 def part1(data):
     """Advent of code 2023 day 12 - Part 1"""
     answer = 0
-
+    for line, groups in data:
+        get_possible_arrangements(line, groups)
     print(f"Solution day 12, part 1: {answer}")
     return answer
 
@@ -68,8 +86,8 @@ def main(parts: str, should_submit: bool = False, load_test_data: bool = False) 
 
 
 if __name__ == "__main__":
-    test_data = False
-    # test_data = True
+    # test_data = False
+    test_data = True
     submit_answer = False
     # submit_answer = True
     main("a", should_submit=submit_answer, load_test_data=test_data)
